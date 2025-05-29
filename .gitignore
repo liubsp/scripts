@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+.localized
+
+# VS Code
+.vscode/
+.vscode-insiders/
+.vscode-server/
+.vscode-server-insiders/
+.vscode-test/
