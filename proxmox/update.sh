@@ -2,7 +2,7 @@
 # Usage: sudo ./update.sh
 
 ROOT_EMAIL=$(pveum user list | awk '/root@pam/ { print $5 }')
-LOG_FILE="/tmp/pve_upgrade.log"
+LOG_FILE=$(mktemp /tmp/pve_upgrade.log.XXXXXX)
 TIMEOUT_DURATION="5m"
 
 # Commands to run: update, upgrade (with auto-yes), autoremove (with auto-yes)
