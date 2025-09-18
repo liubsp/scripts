@@ -7,7 +7,7 @@
 
 # Optional parameters:
 # @raycast.icon 🤖
-# @raycast.argument1 { "type": "text", "placeholder": "Placeholder" }
+# @raycast.argument1 { "type": "text", "placeholder": "URL" }
 
 # Documentation:
 # @raycast.author liubomyr
