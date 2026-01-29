@@ -1,10 +1,21 @@
 #!/bin/bash
 
-# Sleep Status for xbar
-# Shows whether your Mac is ready to sleep or something is blocking it
+# <bitbar.title>Sleep Status</bitbar.title>
+# <bitbar.version>v1.0</bitbar.version>
+# <bitbar.author>github.com/liubsp</bitbar.author>
+# <bitbar.desc>Shows whether your Mac is ready to sleep or blocked by processes and awake history.</bitbar.desc>
+# <bitbar.dependencies>pmset,bash</bitbar.dependencies>
 
-# xbar renders pure white (#FFFFFF) as gray, so use off-white instead
-WHITE="#FBFFFF"
+# We check the system appearance to determine the correct text color.
+if [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]; then
+    TEXT_COLOR="#FBFFFF" # SwiftBar renders pure white (#FFFFFF) as gray, so use off-white instead
+else
+    TEXT_COLOR="black"
+fi
+COLOR_GREEN="green"
+COLOR_ORANGE="orange"
+COLOR_RED="red"
+COLOR_GRAY="gray"
 
 # Get all assertions
 assertions=$(pmset -g assertions 2>/dev/null)
@@ -26,18 +37,18 @@ fi
 
 # Menu bar icon
 if [ "$count" -eq 0 ]; then
-    echo "☾"
+    echo ":moon.stars.fill:"
 else
-    echo "☕ $count"
+    echo ":cup.and.saucer.fill: $count"
 fi
 
 echo "---"
 
 # Status summary
 if [ "$count" -eq 0 ]; then
-    echo "✓ Mac can sleep normally | color=green"
+    echo "✓ Mac can sleep normally | color=$COLOR_GREEN"
 else
-    echo "⚠ $count process(es) blocking sleep | color=orange"
+    echo "⚠ $count process(es) blocking sleep | color=$COLOR_ORANGE"
 fi
 
 echo "---"
@@ -50,18 +61,18 @@ if [ "$count" -gt 0 ]; then
         proc=$(echo "$line" | grep -oE "pid [0-9]+\([^)]+\)" | head -1)
         reason=$(echo "$line" | grep -oE 'named: "[^"]+"' | sed 's/named: //' | tr -d '"')
         if [ -n "$proc" ]; then
-            echo "• $proc | color=red"
-            echo "  $reason | color=gray size=12"
+            echo "• $proc | color=$COLOR_RED"
+            echo "  $reason | color=$COLOR_GRAY size=12"
         fi
     done
     echo "---"
 fi
 
 # Awake History - shows sessions from past 7 days, flags >8h as potential blockers
-echo "Awake History | size=12 color=gray"
+echo "Awake History | size=12 color=$COLOR_GRAY"
 pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     awk '($4 == "Sleep" || $4 == "Wake") && $5 != "Requests" && !/Maintenance Sleep/' | \
-    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v WHITE="$WHITE" '
+    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v WHITE="$TEXT_COLOR" '
     BEGIN {
         MAX_AGE = 604800      # 7 days in seconds
         MAX_SESSIONS = 20     # max sessions to display
@@ -135,17 +146,17 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
 echo "---"
 
 echo "Scheduled Wakes"
-echo "-- Upcoming system wake events | color=gray size=12"
+echo "-- Upcoming system wake events | color=$COLOR_GRAY size=12"
 pmset -g sched 2>/dev/null | grep -E "^\s*\[" | while read -r line; do
     time=$(echo "$line" | grep -oE "[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}")
     source=$(echo "$line" | grep -oE "'[^']+'" | tr -d "'" | sed 's/com.apple.alarm.user-invisible-//' | sed 's/com.apple.//')
-    echo "-- $time - $source | font=Menlo size=10 color=$WHITE"
+    echo "-- $time - $source | font=Menlo size=10 color=$TEXT_COLOR"
 done
 
 echo "Raw Sleep Log"
-echo "-- Recent pmset events for debugging | color=gray size=12"
+echo "-- Recent pmset events for debugging | color=$COLOR_GRAY size=12"
 pmset -g log 2>/dev/null | grep -E "Entering.Sleep|Wake.from|DarkWake" | tail -40 | while read -r line; do
-    echo "-- $line | font=Menlo size=10 color=$WHITE trim=false"
+    echo "-- $line | font=Menlo size=10 color=$TEXT_COLOR trim=false"
 done
 
 echo "---"
