@@ -141,23 +141,3 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         }
         if (sc == 0) print "No awake sessions | color=gray"
     }'
-
-# Submenus
-echo "---"
-
-echo "Scheduled Wakes"
-echo "-- Upcoming system wake events | color=$COLOR_GRAY size=12"
-pmset -g sched 2>/dev/null | grep -E "^\s*\[" | while read -r line; do
-    time=$(echo "$line" | grep -oE "[0-9]{2}/[0-9]{2}/[0-9]{4} [0-9]{2}:[0-9]{2}")
-    source=$(echo "$line" | grep -oE "'[^']+'" | tr -d "'" | sed 's/com.apple.alarm.user-invisible-//' | sed 's/com.apple.//')
-    echo "-- $time - $source | font=Menlo size=10 color=$TEXT_COLOR"
-done
-
-echo "Raw Sleep Log"
-echo "-- Recent pmset events for debugging | color=$COLOR_GRAY size=12"
-pmset -g log 2>/dev/null | grep -E "Entering.Sleep|Wake.from|DarkWake" | tail -40 | while read -r line; do
-    echo "-- $line | font=Menlo size=10 color=$TEXT_COLOR trim=false"
-done
-
-echo "---"
-echo "Refresh | refresh=true"
