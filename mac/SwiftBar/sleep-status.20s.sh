@@ -8,17 +8,17 @@
 
 # We check the system appearance to determine colors based on theme.
 if [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]; then
-    COLOR_TEXT="#FFFFFE" # SwiftBar/xbar renders pure white (#FFFFFF) as gray, so use off-white instead
+    COLOR_PRIMARY="#FFFFFE" # Passive items are rendered with Secondary Label styling (gray), so use off-white instead
     COLOR_GREEN="green"
     COLOR_ORANGE="orange"
     COLOR_RED="red"
     COLOR_GRAY="gray"
 else
-    COLOR_TEXT="#000001"   # SwiftBar/xbar renders pure black (#000000) as gray, so use off-black instead
-    COLOR_GREEN="#0D5D20"  # dark green
-    COLOR_ORANGE="#8B3E00" # dark orange
-    COLOR_RED="#8B0000"    # dark red
-    COLOR_GRAY="#444444"   # dark gray
+    COLOR_PRIMARY="#000001" # Passive items are rendered with Secondary Label styling (gray), so use off-black instead
+    COLOR_GREEN="#0D5D20"   # Dark green
+    COLOR_ORANGE="#8B3E00"  # Dark orange
+    COLOR_RED="#8B0000"     # Dark red
+    COLOR_GRAY="#444444"    # Dark gray
 fi
 
 # Get all assertions
@@ -67,9 +67,9 @@ if [ "$count" -gt 0 ]; then
         reason=$(echo "$line" | grep -oE 'named: "[^"]+"' | sed 's/named: //' | tr -d '"')
         if [ -n "$proc" ]; then
             echo "• $proc | color=$COLOR_RED"
-            # Wrap long reason lines at 60 characters
-            echo "$reason" | fold -s -w 60 | while read -r part; do
-                [ -n "$part" ] && echo "  $part | color=$COLOR_TEXT"
+            # Wrap long reason lines
+            echo "$reason" | fold -s -w 50 | while read -r part; do
+                [ -n "$part" ] && echo "  $part | font=Menlo color=$COLOR_PRIMARY size=10"
             done
         fi
     done
@@ -81,8 +81,8 @@ fi
 echo "Awake History | color=$COLOR_GRAY"
 pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     awk '($4 == "Sleep" || $4 == "Wake") && $5 != "Requests" && !/Maintenance Sleep/' | \
-    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v COLOR_TEXT="$COLOR_TEXT" \
-        -v ORANGE="$COLOR_ORANGE" -v GRAY="$COLOR_GRAY" '
+    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v COLOR_PRIMARY="$COLOR_PRIMARY" \
+        -v COLOR_ORANGE="$COLOR_ORANGE" -v COLOR_GRAY="$COLOR_GRAY" -v COLOR_GREEN="$COLOR_GREEN" '
     BEGIN {
         MAX_SESSIONS = 15     # max sessions to display
         MIN_SESSION = 300     # 5 min - minimum awake duration to count as session
@@ -109,7 +109,7 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         n++; T[n] = ts; E[n] = $4; D[n] = fmt_dt($1, $2)
     }
     END {
-        if (n == 0) { print "No activity | color=" GRAY; exit }
+        if (n == 0) { print "No activity | color=" COLOR_PRIMARY; exit }
 
         # Build sessions: find Wake→Sleep pairs with >5min awake time
         sc = 0
@@ -141,9 +141,9 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         # Output sessions newest first - flag long sessions as potential sleep blockers
         for (i = sc; i >= 1; i--) {
             d = fmt_dur(SD[i])
-            if (SA[i]) print SW[i] " → now (" d ") | color=" COLOR_TEXT
-            else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | color=" ORANGE
-            else print SW[i] " → " SS[i] " (" d ") | color=" COLOR_TEXT
+            if (SA[i]) print SW[i] " → now (" d ") | font=Menlo color=" COLOR_GREEN
+            else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | font=Menlo color=" COLOR_ORANGE
+            else print SW[i] " → " SS[i] " (" d ") | font=Menlo color=" COLOR_PRIMARY
         }
-        if (sc == 0) print "No awake sessions | color=" GRAY
+        if (sc == 0) print "No awake sessions | color=" COLOR_PRIMARY
     }'
