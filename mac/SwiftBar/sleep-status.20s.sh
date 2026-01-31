@@ -6,16 +6,20 @@
 # <xbar.desc>Shows whether your Mac is ready to sleep or blocked by processes and awake history.</xbar.desc>
 # <xbar.dependencies>pmset,defaults</xbar.dependencies>
 
-# We check the system appearance to determine the correct text color.
+# We check the system appearance to determine colors based on theme.
 if [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]; then
-    TEXT_COLOR="#FFFFFE" # SwiftBar/xbar renders pure white (#FFFFFF) as gray, so use off-white instead
+    COLOR_TEXT="#FFFFFE" # SwiftBar/xbar renders pure white (#FFFFFF) as gray, so use off-white instead
+    COLOR_GREEN="green"
+    COLOR_ORANGE="orange"
+    COLOR_RED="red"
+    COLOR_GRAY="gray"
 else
-    TEXT_COLOR="#000001" # SwiftBar/xbar renders pure black (#000000) as gray, so use off-black instead
+    COLOR_TEXT="#000001"   # SwiftBar/xbar renders pure black (#000000) as gray, so use off-black instead
+    COLOR_GREEN="#0D5D20"  # dark green
+    COLOR_ORANGE="#8B3E00" # dark orange
+    COLOR_RED="#8B0000"    # dark red
+    COLOR_GRAY="#444444"   # dark gray
 fi
-COLOR_GREEN="green"
-COLOR_ORANGE="orange"
-COLOR_RED="red"
-COLOR_GRAY="gray"
 
 # Get all assertions
 assertions=$(pmset -g assertions 2>/dev/null)
@@ -48,14 +52,15 @@ echo "---"
 if [ "$count" -eq 0 ]; then
     echo "✓ Mac can sleep normally | color=$COLOR_GREEN"
 else
-    echo "⚠ $count process(es) blocking sleep | color=$COLOR_ORANGE"
+    [ "$count" -eq 1 ] && word="process" || word="processes"
+    echo "⚠ $count $word blocking sleep | color=$COLOR_ORANGE"
 fi
 
 echo "---"
 
 # Show blockers if any
 if [ "$count" -gt 0 ]; then
-    echo "Blocking processes:"
+    echo "Blocking Processes"
     echo "$blockers" | while read -r line; do
         # Extract process name and reason
         proc=$(echo "$line" | grep -oE "pid [0-9]+\([^)]+\)" | head -1)
@@ -64,7 +69,7 @@ if [ "$count" -gt 0 ]; then
             echo "• $proc | color=$COLOR_RED"
             # Wrap long reason lines at 60 characters
             echo "$reason" | fold -s -w 60 | while read -r part; do
-                [ -n "$part" ] && echo "  $part | color=$COLOR_GRAY size=12"
+                [ -n "$part" ] && echo "  $part | color=$COLOR_TEXT"
             done
         fi
     done
@@ -73,10 +78,10 @@ fi
 
 # Awake History - shows recent sessions and flags long sessions as potential sleep blockers.
 # pmset log has limited history and may return less sessions than MAX_SESSIONS.
-echo "Awake History | size=12 color=$COLOR_GRAY"
+echo "Awake History | color=$COLOR_GRAY"
 pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     awk '($4 == "Sleep" || $4 == "Wake") && $5 != "Requests" && !/Maintenance Sleep/' | \
-    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v TEXT_COLOR="$TEXT_COLOR" \
+    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v COLOR_TEXT="$COLOR_TEXT" \
         -v ORANGE="$COLOR_ORANGE" -v GRAY="$COLOR_GRAY" '
     BEGIN {
         MAX_SESSIONS = 15     # max sessions to display
@@ -95,8 +100,8 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     }
     function fmt_dt(d, t) {
         tm = substr(t, 1, 5)
-        if (d == today) return tm
-        cmd = "date -j -f \"%Y-%m-%d\" \"" d "\" \"+%b %d\" 2>/dev/null"
+        if (d == today) return sprintf("%16s", tm)
+        cmd = "date -j -f \"%Y-%m-%d\" \"" d "\" \"+%a %b %d\" 2>/dev/null"
         cmd | getline r; close(cmd); return r " " tm
     }
     {
@@ -136,9 +141,9 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         # Output sessions newest first - flag long sessions as potential sleep blockers
         for (i = sc; i >= 1; i--) {
             d = fmt_dur(SD[i])
-            if (SA[i]) print SW[i] " → now (" d ") | color=" TEXT_COLOR
+            if (SA[i]) print SW[i] " → now (" d ") | color=" COLOR_TEXT
             else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | color=" ORANGE
-            else print SW[i] " → " SS[i] " (" d ") | color=" TEXT_COLOR
+            else print SW[i] " → " SS[i] " (" d ") | color=" COLOR_TEXT
         }
         if (sc == 0) print "No awake sessions | color=" GRAY
     }'
