@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# <bitbar.title>Sleep Status</bitbar.title>
-# <bitbar.version>v1.0</bitbar.version>
-# <bitbar.author>github.com/liubsp</bitbar.author>
-# <bitbar.desc>Shows whether your Mac is ready to sleep or blocked by processes and awake history.</bitbar.desc>
-# <bitbar.dependencies>pmset,bash</bitbar.dependencies>
+# <xbar.title>Sleep Blockers and Awake History</xbar.title>
+# <xbar.version>v1.0</xbar.version>
+# <xbar.author>github.com/liubsp</xbar.author>
+# <xbar.desc>Shows whether your Mac is ready to sleep or blocked by processes and awake history.</xbar.desc>
+# <xbar.dependencies>pmset,defaults</xbar.dependencies>
 
 # We check the system appearance to determine the correct text color.
 if [ "$(defaults read -g AppleInterfaceStyle 2>/dev/null)" == "Dark" ]; then
-    TEXT_COLOR="#FBFFFF" # SwiftBar renders pure white (#FFFFFF) as gray, so use off-white instead
+    TEXT_COLOR="#FFFFFE" # SwiftBar/xbar renders pure white (#FFFFFF) as gray, so use off-white instead
 else
-    TEXT_COLOR="black"
+    TEXT_COLOR="#000001" # SwiftBar/xbar renders pure black (#000000) as gray, so use off-black instead
 fi
 COLOR_GREEN="green"
 COLOR_ORANGE="orange"
@@ -62,20 +62,24 @@ if [ "$count" -gt 0 ]; then
         reason=$(echo "$line" | grep -oE 'named: "[^"]+"' | sed 's/named: //' | tr -d '"')
         if [ -n "$proc" ]; then
             echo "• $proc | color=$COLOR_RED"
-            echo "  $reason | color=$COLOR_GRAY size=12"
+            # Wrap long reason lines at 60 characters
+            echo "$reason" | fold -s -w 60 | while read -r part; do
+                [ -n "$part" ] && echo "  $part | color=$COLOR_GRAY size=12"
+            done
         fi
     done
     echo "---"
 fi
 
-# Awake History - shows sessions from past 7 days, flags >8h as potential blockers
+# Awake History - shows recent sessions and flags long sessions as potential sleep blockers.
+# pmset log has limited history and may return less sessions than MAX_SESSIONS.
 echo "Awake History | size=12 color=$COLOR_GRAY"
 pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     awk '($4 == "Sleep" || $4 == "Wake") && $5 != "Requests" && !/Maintenance Sleep/' | \
-    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v WHITE="$TEXT_COLOR" '
+    awk -v now="$(date +%s)" -v today="$(date +%Y-%m-%d)" -v TEXT_COLOR="$TEXT_COLOR" \
+        -v ORANGE="$COLOR_ORANGE" -v GRAY="$COLOR_GRAY" '
     BEGIN {
-        MAX_AGE = 604800      # 7 days in seconds
-        MAX_SESSIONS = 20     # max sessions to display
+        MAX_SESSIONS = 15     # max sessions to display
         MIN_SESSION = 300     # 5 min - minimum awake duration to count as session
         LONG_AWAKE = 28800    # 8 hours - threshold for "long awake" warning
     }
@@ -97,18 +101,15 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     }
     {
         ts = get_ts($1, $2)
-        if (ts == "" || (now - ts) > MAX_AGE) next
         n++; T[n] = ts; E[n] = $4; D[n] = fmt_dt($1, $2)
     }
     END {
-        if (n == 0) { print "No activity | color=gray"; exit }
+        if (n == 0) { print "No activity | color=" GRAY; exit }
 
         # Build sessions: find Wake→Sleep pairs with >5min awake time
         sc = 0
         for (i = 1; i <= n && sc < MAX_SESSIONS; i++) {
             if (E[i] != "Wake") continue
-            # Check if this wake follows >5min of sleep (or is first event)
-            if (i > 1 && E[i-1] == "Sleep" && (T[i] - T[i-1]) < MIN_SESSION) continue
 
             wake_ts = T[i]; wake_dt = D[i]
             # Find next Sleep that ends this session (>5min after a wake)
@@ -135,9 +136,9 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         # Output sessions newest first - flag long sessions as potential sleep blockers
         for (i = sc; i >= 1; i--) {
             d = fmt_dur(SD[i])
-            if (SA[i]) print SW[i] " → now (" d ") | color=green"
-            else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | color=orange"
-            else print SW[i] " → " SS[i] " (" d ") | color=" WHITE
+            if (SA[i]) print SW[i] " → now (" d ") | color=" TEXT_COLOR
+            else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | color=" ORANGE
+            else print SW[i] " → " SS[i] " (" d ") | color=" TEXT_COLOR
         }
-        if (sc == 0) print "No awake sessions | color=gray"
+        if (sc == 0) print "No awake sessions | color=" GRAY
     }'
