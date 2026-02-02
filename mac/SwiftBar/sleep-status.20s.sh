@@ -100,9 +100,9 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
     }
     function fmt_dt(d, t) {
         tm = substr(t, 1, 5)
-        if (d == today) return sprintf("%16s", tm)
+        if (d == today) return sprintf("%-16s", tm)
         cmd = "date -j -f \"%Y-%m-%d\" \"" d "\" \"+%a %b %d\" 2>/dev/null"
-        cmd | getline r; close(cmd); return r " " tm
+        cmd | getline r; close(cmd); return sprintf("%-16s", r " " tm)
     }
     {
         ts = get_ts($1, $2)
@@ -117,16 +117,11 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
             if (E[i] != "Wake") continue
 
             wake_ts = T[i]; wake_dt = D[i]
-            # Find next Sleep that ends this session (>5min after a wake)
+            # Find next Sleep that ends this session
             sleep_ts = 0; sleep_dt = ""
             for (j = i + 1; j <= n; j++) {
                 if (E[j] == "Sleep") {
-                    # Check if >5min since last wake in this span
-                    last_wake = wake_ts
-                    for (k = j - 1; k >= i; k--) { if (E[k] == "Wake") { last_wake = T[k]; break } }
-                    if ((T[j] - last_wake) >= MIN_SESSION) {
-                        sleep_ts = T[j]; sleep_dt = D[j]; break
-                    }
+                    sleep_ts = T[j]; sleep_dt = D[j]; break
                 }
             }
             dur = sleep_ts > 0 ? (sleep_ts - wake_ts) : (now - wake_ts)
