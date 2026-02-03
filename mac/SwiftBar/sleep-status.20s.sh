@@ -113,7 +113,7 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
 
         # Build sessions: find Wake→Sleep pairs with >5min awake time
         sc = 0
-        for (i = 1; i <= n && sc < MAX_SESSIONS; i++) {
+        for (i = 1; i <= n; i++) {
             if (E[i] != "Wake") continue
 
             wake_ts = T[i]; wake_dt = D[i]
@@ -134,7 +134,8 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         }
 
         # Output sessions newest first - flag long sessions as potential sleep blockers
-        for (i = sc; i >= 1; i--) {
+        start = sc > MAX_SESSIONS ? sc - MAX_SESSIONS + 1 : 1
+        for (i = sc; i >= start; i--) {
             d = fmt_dur(SD[i])
             if (SA[i]) print SW[i] " → now (" d ") | font=Menlo color=" COLOR_GREEN
             else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | font=Menlo color=" COLOR_ORANGE
