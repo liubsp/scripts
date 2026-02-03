@@ -137,7 +137,7 @@ pmset -g log 2>/dev/null | grep -E "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | \
         start = sc > MAX_SESSIONS ? sc - MAX_SESSIONS + 1 : 1
         for (i = sc; i >= start; i--) {
             d = fmt_dur(SD[i])
-            if (SA[i]) print SW[i] " → now (" d ") | font=Menlo color=" COLOR_GREEN
+            if (SA[i]) print SW[i] " → " sprintf("%-16s", "now") " (" d ") | font=Menlo color=" COLOR_GREEN
             else if (SD[i] > LONG_AWAKE) print SW[i] " → " SS[i] " (" d ") ⚠ Long | font=Menlo color=" COLOR_ORANGE
             else print SW[i] " → " SS[i] " (" d ") | font=Menlo color=" COLOR_PRIMARY
         }
